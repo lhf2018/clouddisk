@@ -25,8 +25,10 @@ import java.util.List;
 public class FileController {
     static final String storePath="D:"+File.separator+"upload";//存储目录 C:\\upload
     static final int normallimit=20*1000*1000;//普通用户上传单个文件的最大体积 20mb
-    static final int viplimit=50*50*1000;//vip用户上传单个文件的最大体积 50mb
+    static final int viplimit=50*1000*1000;//vip用户上传单个文件的最大体积 50mb
     static final int factor=1000000;//Mb到字节的转换
+    static final int totalnormallimit=500*1000*1000;//普通用户云盘总量500MB
+    static final int totalviplimit=1000*1000*1000;//vip用户云盘总量1000MB
     @Autowired
     FileService fileService;
     @Autowired
@@ -46,29 +48,37 @@ public class FileController {
         }catch (Exception e){
             e.printStackTrace();
             req.setAttribute("message","未知错误，请重试");
-            return "redirect:/searchUserfile";
+            return "forward:/searchUserfile";
         }
         File store=null;//目标文件
         try {
             store=new File(storePath+File.separator+user_name,file.getOriginalFilename());
         }catch (Exception e){
             req.setAttribute("message", "请先选择文件！");
-            return "redirect:/searchUserfile";
+            return "forward:/searchUserfile";
         }
         long size=file.getSize();//上传文件的大小
         if(false==checkFile(store,storePath,isvip,size,req)){//检查文件大小等是否符合要求
-            return "redirect:/searchUserfile";
+            return "forward:/searchUserfile";
         }
         bupt.iloud.Model.File f=new bupt.iloud.Model.File();
         //把文件信息存入数据库
         f.setCreatetime(new Date());
         f.setFilename(file.getOriginalFilename());
         f.setFilepath(user_name);
-        f.setFilesize(String.valueOf(size/1024+1));
+        f.setFilesize(String.valueOf(size/1024+1));//kb
         f.setCanshare(0);
         f.setMD5(MD5);
         MD5Mapper.MAP.put(MD5,f);
-        //todo 检查用户的云空间是否超过限额
+        //检查用户的云空间是否超过限额
+        int totalUsed=fileService.caculateUsedByUsername(user_name)+Integer.parseInt(f.getFilesize());//单位kb
+        if(isvip==0&&totalUsed>(totalnormallimit/1024)){
+            req.setAttribute("message", "网盘剩余空间不足，普通用户总量: " + totalnormallimit / factor + "Mb的文件");
+            return "forward:/searchUserfile";
+        }else if(isvip==1&&totalUsed>(totalviplimit/1024)){
+            req.setAttribute("message", "网盘剩余空间不足，vip用户总量: " + totalviplimit / factor + "Mb的文件");
+            return "forward:/searchUserfile";
+        }
         Integer flag=null;
         try{
             f.setUser_id(userService.findUserID(user_name));

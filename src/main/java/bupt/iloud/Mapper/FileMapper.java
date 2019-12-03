@@ -37,5 +37,8 @@ public interface FileMapper {
     @Select("select file.filename from file where id=#{value}")
     public String findFilenameById(int id);
 
+    @Select("select sum(filesize) from file where filepath=#{username}")
+    public int caculateUsedByUsername(String username);
+
 
 }

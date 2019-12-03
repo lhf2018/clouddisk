@@ -50,4 +50,7 @@ public class FileService {
     public String findFilenameById(int id){
         return fileMapper.findFilenameById(id);
     }
+    public int caculateUsedByUsername(String username){
+        return fileMapper.caculateUsedByUsername(username);
+    }
 }
